@@ -22,20 +22,22 @@ cost, traces, and model specialists into one human-governed review surface.
 - Campaign planner, creative specialist, deterministic critics, diversity-aware reranker, and
   a pairwise preference model.
 - Cost funnel: 8 text concepts → first-pass rerank → 3 images → vision rerank → human choice.
-- Four durable human gates: brand rules, plan, variant selection, and final approval.
+- Human-in-the-loop governance with four durable approval gates: brand rules, plan, variant
+  selection, and final approval.
 - Versioned campaign state, optimistic concurrency, tenant guards, audit approvals, agent traces,
   model manifest, and transactional-outbox seam.
 - FastAPI service and a responsive Next.js review control room.
 - OpenAI, Adobe Firefly, local/S3, SQLite/PostgreSQL, optional OpenCLIP, and optional Temporal
-  adapters.
-- Tenant-safe text-to-image and image-to-image retrieval with SQLite and pgvector repositories,
-  approved-source policy filtering, traceable reranking, and isolated OpenCLIP inference.
+  adapters, with OpenTelemetry/Tempo tracing.
+- Tenant-safe text-to-image and image-to-image vector retrieval with SQLite and PostgreSQL/pgvector
+  repositories, approved-source policy filtering, traceable reranking, and isolated OpenCLIP
+  inference.
 - Curated, leakage-safe pairwise preference datasets plus versioned Bradley-Terry training and
   evaluation artifacts.
 - Four editable channel exports: Instagram, email, web hero, and presentation slide.
-- 120-scenario benchmark, 90 automated tests, provider-independent core coverage, deterministic demo, failure
-  analysis, Docker
-  Compose, Grafana dashboard, CI, release workflow, and AWS Terraform.
+- 120-scenario benchmark, 90 automated tests, provider-independent core coverage, deterministic
+  demo, failure analysis, Docker Compose, Grafana dashboard, CI, release workflow, and AWS
+  Terraform.
 - Kafka is intentionally omitted. PostgreSQL outbox events provide a safe later migration seam.
 
 ## Fastest verified demo — no key required
@@ -136,10 +138,11 @@ flowchart TD
 Agents propose creative work. State transitions, upload rules, budgets, ranking math, approvals,
 and export authorization are deterministic application code.
 
-## Offline evaluation snapshot
+## Deterministic evaluation harness
 
-These are measured fixture results from the included 120-scenario benchmark, not OpenAI quality
-claims and not human-study results:
+The included 120-scenario fixture benchmark validates orchestration, ranking, and policy-checking
+behavior against controlled failure cases. It is deterministic and synthetic; the results below
+are regression-test measurements, not production model-quality claims or human-study outcomes.
 
 | System | Task success | Mean final | Brand | Visual | Claim violations | Calls/task |
 |---|---:|---:|---:|---:|---:|---:|
@@ -149,32 +152,33 @@ claims and not human-study results:
 | Vision rerank, review-ready | 100.0% | 0.877 | 0.967 | 0.862 | 0.0% | 22 |
 
 The fixture deliberately injects off-brand palettes and unsupported claims into some first
-candidates. It proves the evaluation plumbing catches known failures; it does not prove production
-lift. See reports/offline-evaluation.md and docs/failure-analysis.md.
+candidates. It demonstrates that the evaluation harness catches those known failures; it does not
+establish production lift. See [the evaluation report](reports/offline-evaluation.md) and
+[failure analysis](docs/failure-analysis.md) for methodology and limitations.
 
 ## Repository map
 
 | Path | Responsibility |
 |---|---|
-| src/brandforge | Domain, agents, ranking, workflow, persistence, security, integrations |
-| apps/api | FastAPI routes, auth boundary, uploads, approvals, metrics |
-| apps/web | Next.js human review interface and optional Adobe Express handoff |
-| apps/worker | Outbox publisher and optional Temporal worker |
-| evals | Versioned 10 × 12 benchmark definition |
-| tests | Unit, API, security, persistence, and end-to-end workflow tests |
-| infra/observability | OTel, Tempo, Prometheus, Grafana |
-| infra/terraform | Safe-by-default AWS ECS/RDS/S3 deployment scaffold |
-| docs | Architecture, threat model, runbooks, decisions, and limitations |
+| `src/brandforge` | Domain, agents, ranking, workflow, persistence, security, integrations |
+| `apps/api` | FastAPI routes, auth boundary, uploads, approvals, metrics |
+| `apps/web` | Next.js human review interface and optional Adobe Express handoff |
+| `apps/worker` | Outbox publisher and optional Temporal worker |
+| `evals` | Versioned 10 × 12 benchmark definition |
+| `tests` | Unit, API, security, persistence, and end-to-end workflow tests |
+| `infra/observability` | OpenTelemetry, Tempo, Prometheus, Grafana |
+| `infra/terraform` | Safe-by-default AWS ECS/RDS/S3 deployment scaffold |
+| `docs` | Architecture, threat model, runbooks, decisions, and limitations |
 
-See PROJECT_TASKS.md for the completed workstream ledger and the credential-dependent launch
-tasks that intentionally remain open.
+See [the project workstream ledger](PROJECT_TASKS.md) for completed work and the
+credential-dependent launch tasks that intentionally remain open.
 
 ## Adobe integration
 
-Adobe Firefly remains an alternative image provider through ADOBE_FIREFLY_ENABLED. Adobe Express
+Adobe Firefly remains an alternative image provider through `ADOBE_FIREFLY_ENABLED`. Adobe Express
 handoff is feature-flagged in the web app. Express credentials, an HTTPS allowed domain, and
 Adobe business approval are required; BrandForge never exposes the OpenAI or Firefly server
-secret to the browser. See docs/adobe-integration.md.
+secret to the browser. See [Adobe integration](docs/adobe-integration.md).
 
 ## Production boundary
 
@@ -183,21 +187,14 @@ Terraform module defaults to an internal load balancer and development auth off;
 identity-aware gateway in front of it, apply the row-level-security migration with distinct
 application/worker roles, and configure TLS/WAF before storing customer assets.
 
-Read docs/implementation-status.md before presenting or deploying the project. It distinguishes
-working code from credential-dependent adapters and explicit production follow-up work.
+Read [the implementation status](docs/implementation-status.md) before presenting or deploying
+the project. It distinguishes working code from credential-dependent adapters and explicit
+production follow-up work.
 
 Coverage measures the provider-independent core. Credentialed OpenAI, Adobe, S3, PostgreSQL, and
 Temporal adapters are intentionally excluded from that percentage and must pass their separate
 contract/integration suites in the target environment.
 
-## Résumé bullet
-
-Do not use the offline percentages as a résumé claim. After running the OpenAI benchmark and a
-reviewer study, replace the blanks with measured confidence intervals:
-
-> Improved brand-safe campaign task completion by __% over a single-output baseline while
-> reducing human review time by __% at $__ per approved campaign across __ held-out briefs.
-
 ## License
 
-MIT
+[MIT](LICENSE)
