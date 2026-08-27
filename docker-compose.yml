@@ -1,0 +1,259 @@
+name: brandforge
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: brandforge
+      POSTGRES_USER: brandforge
+      POSTGRES_PASSWORD: local-only-change-me
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brandforge -d brandforge"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5432:5432"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: brandforge
+      MINIO_ROOT_PASSWORD: local-only-change-me
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >
+        until mc alias set local http://minio:9000 brandforge local-only-change-me;
+        do sleep 1; done &&
+        mc mb --ignore-existing local/brandforge-assets &&
+        mc anonymous set none local/brandforge-assets
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      BRANDFORGE_ENV: development
+      BRANDFORGE_DEV_AUTH: "true"
+      DATABASE_URL: postgresql+psycopg://brandforge:local-only-change-me@postgres:5432/brandforge
+      OBJECT_STORE_PROVIDER: s3
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_BUCKET: brandforge-assets
+      S3_ACCESS_KEY_ID: brandforge
+      S3_SECRET_ACCESS_KEY: local-only-change-me
+      MODEL_PROVIDER: ${MODEL_PROVIDER:-deterministic}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_TEXT_MODEL: ${OPENAI_TEXT_MODEL:-gpt-5.6}
+      OPENAI_VISION_MODEL: ${OPENAI_VISION_MODEL:-gpt-5.6}
+      OPENAI_IMAGE_MODEL: ${OPENAI_IMAGE_MODEL:-gpt-image-2}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT:-none}
+      OPENAI_TEXT_MAX_OUTPUT_TOKENS: ${OPENAI_TEXT_MAX_OUTPUT_TOKENS:-1024}
+      OPENAI_VISION_MAX_OUTPUT_TOKENS: ${OPENAI_VISION_MAX_OUTPUT_TOKENS:-1024}
+      OPENAI_ESTIMATED_TEXT_CALL_USD: ${OPENAI_ESTIMATED_TEXT_CALL_USD:-0.01}
+      OPENAI_ESTIMATED_VISION_CALL_USD: ${OPENAI_ESTIMATED_VISION_CALL_USD:-0.015}
+      OPENAI_ESTIMATED_IMAGE_CALL_USD: ${OPENAI_ESTIMATED_IMAGE_CALL_USD:-0.05}
+      MODEL_REQUEST_BUDGET_USD: ${MODEL_REQUEST_BUDGET_USD:-5.00}
+      MODEL_MAX_CALLS_PER_CAMPAIGN: ${MODEL_MAX_CALLS_PER_CAMPAIGN:-50}
+      RETRIEVAL_ENABLED: ${RETRIEVAL_ENABLED:-true}
+      RETRIEVAL_EMBEDDING_PROVIDER: ${RETRIEVAL_EMBEDDING_PROVIDER:-deterministic}
+      RETRIEVAL_MODEL_NAME: ${RETRIEVAL_MODEL_NAME:-ViT-B-32}
+      RETRIEVAL_MODEL_VERSION: ${RETRIEVAL_MODEL_VERSION:-laion2b_s34b_b79k}
+      RETRIEVAL_EMBEDDING_DIMENSION: ${RETRIEVAL_EMBEDDING_DIMENSION:-32}
+      RETRIEVAL_REMOTE_URL: ${RETRIEVAL_REMOTE_URL:-}
+      RETRIEVAL_WORKER_TOKEN: ${RETRIEVAL_WORKER_TOKEN:-}
+      PREFERENCE_MODEL_PATH: ${PREFERENCE_MODEL_PATH:-}
+      ADOBE_FIREFLY_ENABLED: ${ADOBE_FIREFLY_ENABLED:-false}
+      ADOBE_FIREFLY_CLIENT_ID: ${ADOBE_FIREFLY_CLIENT_ID:-}
+      ADOBE_FIREFLY_CLIENT_SECRET: ${ADOBE_FIREFLY_CLIENT_SECRET:-}
+      ADOBE_FIREFLY_BASE_URL: ${ADOBE_FIREFLY_BASE_URL:-https://firefly-api.adobe.io}
+      ADOBE_IMS_TOKEN_URL: ${ADOBE_IMS_TOKEN_URL:-https://ims-na1.adobelogin.com/ims/token/v3}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-26214400}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      OTEL_SERVICE_NAME: brandforge-api
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  outbox-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "-m", "apps.worker.main"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://brandforge:local-only-change-me@postgres:5432/brandforge
+    depends_on:
+      api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  multimodal-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.multimodal
+    profiles: ["multimodal"]
+    environment:
+      RETRIEVAL_MODEL_NAME: ${RETRIEVAL_MODEL_NAME:-ViT-B-32}
+      RETRIEVAL_MODEL_VERSION: ${RETRIEVAL_MODEL_VERSION:-laion2b_s34b_b79k}
+      RETRIEVAL_EMBEDDING_DIMENSION: ${RETRIEVAL_EMBEDDING_DIMENSION:-512}
+      RETRIEVAL_DEVICE: ${RETRIEVAL_DEVICE:-cpu}
+      RETRIEVAL_WORKER_TOKEN: ${RETRIEVAL_WORKER_TOKEN:-}
+    restart: unless-stopped
+
+  multimodal-indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile.multimodal
+    profiles: ["multimodal"]
+    command: ["python", "-m", "apps.worker.multimodal_indexer"]
+    healthcheck:
+      disable: true
+    environment:
+      DATABASE_URL: postgresql+psycopg://brandforge:local-only-change-me@postgres:5432/brandforge
+      OBJECT_STORE_PROVIDER: s3
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_BUCKET: brandforge-assets
+      S3_ACCESS_KEY_ID: brandforge
+      S3_SECRET_ACCESS_KEY: local-only-change-me
+      RETRIEVAL_ENABLED: "true"
+      RETRIEVAL_EMBEDDING_PROVIDER: openclip
+      RETRIEVAL_MODEL_NAME: ${RETRIEVAL_MODEL_NAME:-ViT-B-32}
+      RETRIEVAL_MODEL_VERSION: ${RETRIEVAL_MODEL_VERSION:-laion2b_s34b_b79k}
+      RETRIEVAL_EMBEDDING_DIMENSION: ${RETRIEVAL_EMBEDDING_DIMENSION:-512}
+      RETRIEVAL_DEVICE: ${RETRIEVAL_DEVICE:-cpu}
+      RETRIEVAL_TENANTS: ${RETRIEVAL_TENANTS:-demo-studio}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_ADOBE_EXPRESS_ENABLED: ${NEXT_PUBLIC_ADOBE_EXPRESS_ENABLED:-false}
+        NEXT_PUBLIC_ADOBE_EXPRESS_CLIENT_ID: ${NEXT_PUBLIC_ADOBE_EXPRESS_CLIENT_ID:-}
+        NEXT_PUBLIC_ADOBE_EXPRESS_APP_NAME: ${NEXT_PUBLIC_ADOBE_EXPRESS_APP_NAME:-BrandForge}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  temporal:
+    image: temporalio/auto-setup:1.27.2
+    profiles: ["temporal"]
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: brandforge
+      POSTGRES_PWD: local-only-change-me
+      POSTGRES_SEEDS: postgres
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "7233:7233"
+
+  temporal-ui:
+    image: temporalio/ui:2.34.0
+    profiles: ["temporal"]
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on:
+      - temporal
+    ports:
+      - "8080:8080"
+
+  temporal-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["temporal"]
+    command: ["python", "-m", "apps.worker.temporal_worker"]
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_TASK_QUEUE: brandforge-general
+    depends_on:
+      - temporal
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.119.0
+    profiles: ["observability"]
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./infra/observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - tempo
+
+  tempo:
+    image: grafana/tempo:2.7.1
+    profiles: ["observability"]
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./infra/observability/tempo.yaml:/etc/tempo.yaml:ro
+    ports:
+      - "3200:3200"
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    profiles: ["observability"]
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    profiles: ["observability"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: local-only-change-me
+    volumes:
+      - ./infra/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+      - tempo
+
+volumes:
+  postgres-data:
+  minio-data:

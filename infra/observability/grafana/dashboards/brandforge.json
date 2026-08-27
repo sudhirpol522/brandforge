@@ -1,0 +1,63 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Campaigns created",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [{"expr": "sum(brandforge_campaigns_total)", "legendFormat": "campaigns"}]
+    },
+    {
+      "type": "stat",
+      "title": "Estimated model cost",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "currencyUSD"}},
+      "targets": [{"expr": "sum(brandforge_model_cost_usd_total)", "legendFormat": "USD"}]
+    },
+    {
+      "type": "stat",
+      "title": "Completed transitions",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "targets": [{"expr": "sum(brandforge_workflow_transitions_total{state=\"completed\"})", "legendFormat": "completed"}]
+    },
+    {
+      "type": "stat",
+      "title": "Retryable failures",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "targets": [{"expr": "sum(brandforge_workflow_transitions_total{state=\"failed_retryable\"})", "legendFormat": "failures"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Workflow transitions by state",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [{"expr": "sum by (state) (rate(brandforge_workflow_transitions_total[5m]))", "legendFormat": "{{state}}"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Mean agent duration",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "fieldConfig": {"defaults": {"unit": "s"}},
+      "targets": [{
+        "expr": "sum by (agent) (rate(brandforge_agent_duration_seconds_sum[5m])) / sum by (agent) (rate(brandforge_agent_duration_seconds_count[5m]))",
+        "legendFormat": "{{agent}}"
+      }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Model cost rate by provider",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+      "fieldConfig": {"defaults": {"unit": "currencyUSD"}},
+      "targets": [{"expr": "sum by (provider) (rate(brandforge_model_cost_usd_total[5m]))", "legendFormat": "{{provider}}"}]
+    }
+  ],
+  "schemaVersion": 40,
+  "tags": ["brandforge", "quality", "cost", "latency"],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser",
+  "title": "BrandForge — Quality, Cost and Latency",
+  "uid": "brandforge-overview",
+  "version": 1
+}

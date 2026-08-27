@@ -1,0 +1,23 @@
+https://localhost:3443 {
+	tls internal
+
+	handle /v1/* {
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	handle /health/* {
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	handle /docs* {
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	handle /openapi.json {
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}

@@ -1,0 +1,95 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "brandforge-ai"
+version = "0.1.0"
+description = "Human-guided multi-agent creative campaign studio with multimodal reranking"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "BrandForge Contributors" }]
+dependencies = [
+  "boto3>=1.35,<2",
+  "fastapi>=0.115,<1",
+  "httpx[socks]>=0.28,<1",
+  "openai>=2.0,<3",
+  "pydantic>=2.9,<3",
+  "pypdf>=5,<7",
+  "python-multipart>=0.0.18,<1",
+  "sqlalchemy>=2.0,<3",
+  "psycopg[binary]>=3.2,<4",
+  "pgvector>=0.3,<1",
+  "uvicorn[standard]>=0.32,<1",
+]
+
+[project.optional-dependencies]
+temporal = ["temporalio>=1.8,<2"]
+multimodal = ["open-clip-torch>=2.29,<4", "Pillow>=11,<13"]
+observability = [
+  "opentelemetry-distro>=0.50b0,<1",
+  "opentelemetry-exporter-otlp>=1.29,<2",
+  "opentelemetry-instrumentation-fastapi>=0.50b0,<1",
+]
+dev = [
+  "coverage[toml]>=7.6,<8",
+  "mypy>=1.13,<2",
+  "pip-audit>=2.7,<3",
+  "pytest>=8.3,<10",
+  "ruff>=0.8,<1",
+]
+
+[project.scripts]
+brandforge-demo = "brandforge.demo:main"
+brandforge-eval = "brandforge.evaluation:main"
+brandforge-retrieval-eval = "brandforge.retrieval_evaluation:main"
+brandforge-retrieval-index = "brandforge.retrieval_cli:main"
+brandforge-preference-eval = "brandforge.preference_evaluation:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/brandforge"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/brandforge/agents/creative.py" = ["S311"]
+"src/brandforge/exporter.py" = ["E501"]
+"src/brandforge/integrations/adobe_firefly.py" = ["S107", "S310"]
+"src/brandforge/integrations/retrieval_repository.py" = ["S608"]
+"src/brandforge/model_gateway.py" = ["S310", "S311"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = [
+  "brandforge.integrations.clip_scorer",
+  "brandforge.integrations.s3_store",
+  "brandforge.integrations.temporal_workflow",
+]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["brandforge"]
+branch = true
+omit = [
+  "src/brandforge/demo.py",
+  "src/brandforge/integrations/*",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true

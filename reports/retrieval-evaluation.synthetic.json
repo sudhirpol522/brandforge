@@ -1,0 +1,42 @@
+{
+  "baseline": {
+    "latency_p50_ms": 4.2,
+    "latency_p95_ms": 5.01,
+    "mrr": 0.833333,
+    "ndcg_at_10": 0.598081,
+    "pairwise_accuracy": 0.222222,
+    "policy_violation_rate": 0.25,
+    "recall_at_10": 1.0,
+    "recall_at_50": 1.0
+  },
+  "dataset": {
+    "provenance": "synthetic",
+    "source": "synthetic",
+    "synthetic": true,
+    "version": "retrieval-synthetic-v1"
+  },
+  "delta": {
+    "mrr": 0.166667,
+    "ndcg_at_10": 0.401919,
+    "pairwise_accuracy": 0.777778,
+    "policy_violation_rate": -0.25,
+    "recall_at_10": 0.0,
+    "recall_at_50": 0.0
+  },
+  "disclaimer": "Synthetic fixture metrics verify evaluation plumbing only and are not human-study or production retrieval evidence.",
+  "embedding_version": "dataset-snapshot",
+  "judgment_count": 12,
+  "query_count": 3,
+  "reranked": {
+    "latency_p50_ms": 6.8,
+    "latency_p95_ms": 7.34,
+    "mrr": 1.0,
+    "ndcg_at_10": 1.0,
+    "pairwise_accuracy": 1.0,
+    "policy_violation_rate": 0.0,
+    "recall_at_10": 1.0,
+    "recall_at_50": 1.0
+  },
+  "reranker_version": "cross-modal-policy-v1",
+  "schema_version": 1
+}

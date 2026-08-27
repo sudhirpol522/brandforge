@@ -1,0 +1,58 @@
+{
+  "counts": {
+    "test": 2,
+    "train": 2,
+    "validation": 2
+  },
+  "dataset": {
+    "fingerprint": "2dd3c9e3e44c044b1d8e01de856c5753ef0e8d345aae9b54bf8ca2e114ab57f0",
+    "source": "synthetic",
+    "split_fingerprint": "354bc024c4a4cdc1979965f908cb678bdc9944e6e19ac1ab2bc2914932154e35",
+    "split_strategy": "brief-grouped-hash-v1",
+    "synthetic": true
+  },
+  "disclaimer": "Synthetic comparison metrics verify training and evaluation plumbing only; they are not evidence of human preference lift.",
+  "metrics": {
+    "expected_calibration_error": 0.109244,
+    "human_top_choice_selection_rate": 1.0,
+    "ndcg_at_3": 1.0,
+    "pairwise_accuracy": 1.0
+  },
+  "model": {
+    "features": [
+      "brief_alignment",
+      "visual_alignment",
+      "copy_image_consistency",
+      "visual_quality",
+      "brand_compliance",
+      "accessibility",
+      "claims_safety"
+    ],
+    "hyperparameters": {
+      "epochs": 250,
+      "l2": 0.01,
+      "learning_rate": 0.08
+    },
+    "training_examples": 2,
+    "version": "preference-v2-n2-9a6a8bc597"
+  },
+  "schema_version": 1,
+  "slices": {
+    "brand": {
+      "Synthetic Beta": {
+        "sample_count": 2,
+        "suppressed": true
+      }
+    },
+    "campaign_category": {
+      "awareness": {
+        "sample_count": 2,
+        "suppressed": true
+      }
+    }
+  },
+  "warnings": [
+    "brand slice 'Synthetic Beta' suppressed below 5 comparisons",
+    "campaign_category slice 'awareness' suppressed below 5 comparisons"
+  ]
+}

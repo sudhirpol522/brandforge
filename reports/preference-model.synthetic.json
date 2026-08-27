@@ -1,0 +1,31 @@
+{
+  "artifact_schema_version": 1,
+  "dataset_fingerprint": "2dd3c9e3e44c044b1d8e01de856c5753ef0e8d345aae9b54bf8ca2e114ab57f0",
+  "features": [
+    "brief_alignment",
+    "visual_alignment",
+    "copy_image_consistency",
+    "visual_quality",
+    "brand_compliance",
+    "accessibility",
+    "claims_safety"
+  ],
+  "model_version": "preference-v2-n2-9a6a8bc597",
+  "split_fingerprint": "354bc024c4a4cdc1979965f908cb678bdc9944e6e19ac1ab2bc2914932154e35",
+  "trained_at": "2026-08-27T19:56:49.939851+00:00",
+  "training_examples": 2,
+  "training_hyperparameters": {
+    "epochs": 250,
+    "l2": 0.01,
+    "learning_rate": 0.08
+  },
+  "weights": {
+    "accessibility": 0.778696254531604,
+    "brand_compliance": 1.5448903234442548,
+    "brief_alignment": 1.2594072622803165,
+    "claims_safety": 1.1974950792788035,
+    "copy_image_consistency": 1.0484293842948618,
+    "visual_alignment": 1.022201248618699,
+    "visual_quality": 0.9214629690900705
+  }
+}
