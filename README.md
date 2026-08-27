@@ -9,6 +9,13 @@ The real provider path uses OpenAI Responses for copy and vision scoring and GPT
 generation. A deterministic provider makes the entire workflow, tests, and benchmark runnable
 without a key.
 
+## Product preview
+
+![BrandForge export control room showing a completed human-governed campaign and run manifest](docs/assets/brandforge-export-control-room.png)
+
+The export workspace brings channel previews, editable SVG handoff, attributable decisions, run
+cost, traces, and model specialists into one human-governed review surface.
+
 ## What is implemented
 
 - Brand compiler with structured rules, evidence, confidence, and prompt-injection warnings.
