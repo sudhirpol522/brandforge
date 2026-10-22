@@ -26,7 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 temporal = ["temporalio>=1.8,<2"]
-multimodal = ["open-clip-torch>=2.29,<4", "Pillow>=11,<13"]
+multimodal = ["open-clip-torch>=2.29,<4", "Pillow>=11,<14"]
 observability = [
   "opentelemetry-distro>=0.50b0,<1",
   "opentelemetry-exporter-otlp>=1.29,<2",
